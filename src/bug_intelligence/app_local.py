@@ -11,6 +11,7 @@ from langchain.tools import Tool
 # Bugzilla API Base URL
 BUGZILLA_URL = "https://bugzilla.redhat.com"
 
+
 # bzapi = bugzilla.Bugzilla(BUGZILLA_URL, api_key="Mf5LWqGyfWxDEojhk1q5vTMpCc4ByfmvhOCIk8Hh")
 def serialize_bug_details(bug):
     """
