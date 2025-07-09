@@ -1,17 +1,21 @@
+import os
 import re
+import urllib.parse
 from datetime import datetime
 
 import bugzilla
 import streamlit as st
+from dotenv import load_dotenv
 from langchain.agents import AgentType, initialize_agent
 from langchain.memory import ConversationBufferMemory
 from langchain.tools import Tool
 
+load_dotenv()
+
 # Bugzilla API Base URL
-BUGZILLA_URL = "https://bugzilla.redhat.com"
-bzapi = bugzilla.Bugzilla(
-    BUGZILLA_URL, api_key="Mf5LWqGyfWxDEojhk1q5vTMpCc4ByfmvhOCIk8Hh"
-)
+BUGZILLA_URL = os.getenv("BUGZILLA_URL")
+BUGZILLA_API_KEY = os.getenv("BUGZILLA_API_KEY")
+bzapi = bugzilla.Bugzilla(BUGZILLA_URL, api_key=BUGZILLA_API_KEY)
 
 
 def serialize_bug_details(bug):
@@ -95,17 +99,56 @@ def get_mock_bug_details(bug_id: int):
     return bug_report[0]
 
 
-def get_bug_details(bug_id):
+def get_bug_details(bug_id: int):
     """
     Retrieve/returns bug details for a given bug ID.
     """
     print(f"{bug_id = }")
 
     bug = bzapi.getbug(bug_id)
-    print(f"{bug = }")
     out = serialize_bug_details(bug)
-    # out = get_mock_bug_details(bug_id)
     return out
+
+
+def get_bugs_by_search_params(params: dict):
+    """
+    Retrieve/returns bug details for a given search parameters.
+    """
+    print(f"Params used for finding bugs: {params = }")
+
+    # query = bzapi.build_query(**params)
+    if "product" not in params:
+        params["product"] = "Red Hat Ceph Storage"
+
+    components = [
+        "Vsphere-Plugin",
+        "NVMe-oF",
+        "RBD",
+        "RBD-Mirror",
+        "RADOS",
+        "Cephadm",
+        "CephFS",
+        "RGW",
+    ]
+
+    if "component" not in params:
+        params["component"] = components
+
+    base_url = BUGZILLA_URL + "/buglist.cgi"
+
+    query_params = []
+    for key, value in params.items():
+        if isinstance(value, list):
+            for v in value:
+                query_params.append((key, v))
+        else:
+            query_params.append((key, value))
+    url = base_url + "?" + urllib.parse.urlencode(query_params)
+
+    query = bzapi.url_to_query(url)
+
+    bugs = bzapi.query(query)
+    return [serialize_bug_details(bug) for bug in bugs]
 
 
 def serialize_comments(comments):
@@ -365,6 +408,11 @@ tools = [
         name="give the list of all bugs details fast",
         description="Provided product (Red Hat Ceph Storage) and component (RGW, Cephadm) "
         + "tool will  fetches the bug summary of all the bugs of that product and components",
+    ),
+    Tool(
+        func=get_bugs_by_search_params,
+        name="get bugs by search parameters",
+        description="Provide search parameters to fetch bugs based on particular criteria.",
     ),
 ]
 
