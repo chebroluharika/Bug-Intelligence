@@ -117,12 +117,12 @@ def get_bugs_by_search_params(params: dict):
     print(f"Params used for finding bugs: {params = }")
 
     # query = bzapi.build_query(**params)
-    if "product" not in params:
-        params["product"] = "Red Hat Ceph Storage"
+    # if "product" not in params:
+    params["product"] = "Red Hat Ceph Storage"
 
     components = [
         "Vsphere-Plugin",
-        "NVMe-oF",
+        "NVMeOF",
         "RBD",
         "RBD-Mirror",
         "RADOS",
@@ -131,8 +131,8 @@ def get_bugs_by_search_params(params: dict):
         "RGW",
     ]
 
-    if "component" not in params:
-        params["component"] = components
+    # if "component" not in params:
+    params["component"] = components
 
     base_url = BUGZILLA_URL + "/buglist.cgi"
 
@@ -146,8 +146,8 @@ def get_bugs_by_search_params(params: dict):
     url = base_url + "?" + urllib.parse.urlencode(query_params)
 
     query = bzapi.url_to_query(url)
-
     bugs = bzapi.query(query)
+    print(f"Found {len(bugs)} bugs for the given query: {query}")
     return [serialize_bug_details(bug) for bug in bugs]
 
 
