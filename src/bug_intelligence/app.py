@@ -164,6 +164,12 @@ def get_bugs_by_search_params(params: dict):
     # if "component" not in params:
     params["component"] = components
 
+    if "status" in params:
+        if isinstance(params["status"], str):
+            params["status"] = [params["status"], "CLOSED"]
+        elif isinstance(params["status"], list):
+            params["status"].append("CLOSED")
+
     base_url = BUGZILLA_URL + "/buglist.cgi"
 
     query_params = []
