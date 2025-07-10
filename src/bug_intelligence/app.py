@@ -110,6 +110,35 @@ def get_bug_details(bug_id: int):
     return out
 
 
+def get_bug_by_description(params: dict):
+    new_params = {}
+    new_params["product"] = "Red Hat Ceph Storage"
+
+    new_params["component"] = [
+        "Vsphere-Plugin",
+        "NVMeOF",
+        "RBD",
+        "RBD-Mirror",
+        "RADOS",
+        "Cephadm",
+        "CephFS",
+        "RGW",
+        "Build",
+    ]
+
+    new_params["longdesc"] = params["summary"]
+    new_params["longdesc_type"] = (
+        "substring" if isinstance(params["summary"], str) else "anywords"
+    )
+
+    print(f"Params used for finding bugs by description: {new_params = }")
+
+    bugs = bzapi.query(new_params)
+    print(f"Found {len(bugs)} bugs for the given query: {new_params}")
+
+    return bugs
+
+
 def get_bugs_by_search_params(params: dict):
     """
     Retrieve/returns bug details for a given search parameters.
@@ -129,6 +158,7 @@ def get_bugs_by_search_params(params: dict):
         "Cephadm",
         "CephFS",
         "RGW",
+        "Build",
     ]
 
     # if "component" not in params:
@@ -146,9 +176,19 @@ def get_bugs_by_search_params(params: dict):
     url = base_url + "?" + urllib.parse.urlencode(query_params)
 
     query = bzapi.url_to_query(url)
-    bugs = bzapi.query(query)
-    print(f"Found {len(bugs)} bugs for the given query: {query}")
-    return [serialize_bug_details(bug) for bug in bugs]
+    bugs = bzapi.query(query) + get_bug_by_description(params)
+
+    seen = set()
+    unique_bugs = []
+
+    for bug in bugs:
+        if bug.id not in seen:
+            seen.add(bug.id)
+            unique_bugs.append(bug)
+
+    unique_bugs = sorted(unique_bugs, key=lambda bug: bug.id, reverse=True)
+
+    return [serialize_bug_details(bug) for bug in unique_bugs]
 
 
 def serialize_comments(comments):
